@@ -1,0 +1,3 @@
+<catalog>
+  <rewriteURI uriStartString="http://transpect.le-tex.de/xlsx2html/" rewritePrefix="../"/>
+</catalog>
