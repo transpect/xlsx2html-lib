@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <xsl:stylesheet version="2.0"
+                xmlns:css = "http://www.w3.org/1996/css"
                 xmlns:xsl	= "http://www.w3.org/1999/XSL/Transform"
                 xmlns:xs = "http://www.w3.org/2001/XMLSchema"
                 xmlns:saxon	= "http://saxon.sf.net/"
@@ -9,7 +10,7 @@
                 xmlns="http://www.w3.org/1999/xhtml"
                 exclude-result-prefixes = "xs saxon letex"
                 >
-  
+
   <xsl:output
       method="xml"
       encoding="utf-8"
@@ -19,11 +20,14 @@
 
   <xsl:param name="base-uri" select="base-uri(/)"/>
 
+  <xsl:variable name="propmap" select="collection()[2]" as="node()"/>
+
   <xsl:variable name="base-dir" select="/*:xlsx-parts/@xml:base" as="xs:string"/>
   <xsl:variable name="main-rels-part" select="concat($base-dir, '_rels/.rels')" as="xs:string"/>
   <xsl:variable name="main-part" select="//*:part[@xml:base eq concat($base-dir, //*:part[@xml:base eq $main-rels-part]//*:Relationship[@Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument']/@Target)]" as="node()"/>
   <xsl:variable name="main-part-dir" select="replace($main-part/@xml:base, '^(.+/)[^/]+$', '$1')" as="xs:string"/>
   <xsl:variable name="main-part-name" select="replace($main-part/@xml:base, '^(.+/)([^/]+)$', '$2')" as="xs:string"/>
+
 
   <xsl:template name="main">
     <xsl:apply-templates select="$main-part" mode="html"/>
@@ -32,6 +36,7 @@
   <xsl:template match="*:part" mode="html">
     <xsl:for-each select="*:workbook">
       <xsl:element name="html">
+        <xsl:apply-templates select="@srcpath" mode="#current"/>
         <xsl:element name="head">
           <xsl:element name="title">
             <xsl:value-of select="$base-dir"/>
@@ -57,6 +62,7 @@
   <xsl:template match="*:worksheet" mode="html">
     <xsl:param name="title" as="xs:string" tunnel="yes"/>
     <xsl:element name="div">
+      <xsl:apply-templates select="@srcpath" mode="#current"/>
       <xsl:attribute name="class" select="local-name()"/>
       <xsl:element name="h2">
         <xsl:value-of select="$title"/>
@@ -104,6 +110,7 @@
   <xsl:template match="*:row" mode="html">
     <xsl:param name="title" tunnel="yes"/>
     <xsl:element name="tr">
+      <xsl:apply-templates select="@srcpath" mode="#current"/>
       <xsl:attribute name="id" select="concat($title, '_ROW', @r, '_COLS', replace(@spans, ':', '-'))"/>
       <xsl:apply-templates select="@*|node()" mode="#current"/>
     </xsl:element>
@@ -122,6 +129,7 @@
       </xsl:when>
       <xsl:otherwise>
         <xsl:element name="td">
+          <xsl:apply-templates select="@srcpath" mode="#current"/>
           <xsl:sequence select="xlsx2html:mergedCells($mergedCellsInfo, .)"/>
           <xsl:apply-templates select="@*|node()" mode="#current"/>
         </xsl:element>
@@ -169,12 +177,14 @@
           <xsl:message select="concat('xlsx2html Warning: More than one formula found: ', parent::*)"/>
         </xsl:if>
         <xsl:element name="span">
+          <xsl:apply-templates select="preceding-sibling::*:f/@srcpath | following-sibling::*:f/@srcpath" mode="#current"/>
           <xsl:attribute name="class" select="'formula'"/>
           <xsl:apply-templates select="preceding-sibling::*:f | following-sibling::*:f" mode="#current">
             <xsl:with-param name="render" select="'yes'"/>
           </xsl:apply-templates>
         </xsl:element>
         <xsl:element name="span">
+          <xsl:apply-templates select="@srcpath" mode="#current"/>
           <xsl:attribute name="class" select="'result'"/>
           <xsl:apply-templates select="node()" mode="#current"/>
         </xsl:element>
@@ -188,7 +198,8 @@
   <xsl:function name="xlsx2html:get-string-from-sst" as="node()*">
     <xsl:param name="index" as="xs:integer"/>
     <xsl:param name="sst" as="node()"/>
-    <xsl:sequence select="$sst/*:si[position() eq ($index+1)]//*:t/node()"/><!--Include inline formatting (<r>, <rPr>) here! You may adapt this from wml2dbk, if possible.-->
+    <!-- <xsl:sequence select="$sst/*:si[position() eq ($index+1)]//*:t/node()"/> --><!--Include inline formatting (<r>, <rPr>) here! You may adapt this from wml2dbk, if possible.-->
+    <xsl:apply-templates select="$sst/*:si[position() eq ($index+1)]/node()" mode="props"/>
   </xsl:function>
 
   <xsl:template match="*:f" mode="html">
@@ -198,6 +209,63 @@
     </xsl:if>
   </xsl:template>
 
+  <xsl:template match="*:t" mode="html">
+    <xsl:apply-templates select="node()" mode="#current"/>
+  </xsl:template>
+
+
+  <!-- mode: props -->
+
+  <xsl:template match="*:r" mode="props">
+    <xsl:choose>
+      <xsl:when test="*:rPr">
+        <xsl:element name="span">
+          <xsl:apply-templates select="node()" mode="#current"/>
+        </xsl:element>
+      </xsl:when>
+      <xsl:otherwise>
+        <xsl:apply-templates select="node()" mode="#current"/>
+      </xsl:otherwise>
+    </xsl:choose>
+  </xsl:template>
+
+  <xsl:template match="*:rPr" mode="props">
+    <xsl:for-each select="*">
+      <xsl:choose>
+        <xsl:when test="$propmap//*[@name eq current()/name()]">
+          <xsl:variable name="propmap-elem" select="$propmap//*[@name eq current()/name()]" as="node()"/>
+          <xsl:attribute name="{$propmap-elem/@target-name}">
+            <xsl:choose>
+              <xsl:when test="$propmap-elem/@type='docx-boolean-prop'">
+                <xsl:value-of select="$propmap-elem/@active"/>
+              </xsl:when>
+              <xsl:when test="$propmap-elem/@type=('docx-font-size', 'docx-font-family')"><!--$$$ conflicts with family-element and should be merged $$$-->
+                <xsl:value-of select="@val"/>
+              </xsl:when>
+              <xsl:otherwise>
+                <xsl:message select="concat('xlsx2html Error: Formatting property not handled correctly: ', local-name())"/>
+              </xsl:otherwise>
+            </xsl:choose>
+          </xsl:attribute>
+        </xsl:when>
+        <xsl:when test="local-name()='family'">
+          <xsl:attribute name="css:font-family">
+            <xsl:choose><!-- Is this correct? -->
+              <xsl:when test="@val='1'">serif</xsl:when><!--roman-->
+              <xsl:when test="@val='2'">sans-serif</xsl:when><!--swiss-->
+              <xsl:when test="@val='3'">monospace</xsl:when><!--modern-->
+              <xsl:when test="@val='4'">cursive</xsl:when><!--script-->
+              <xsl:when test="@val='5'">fantasy</xsl:when><!--decorative-->
+            </xsl:choose>
+          </xsl:attribute>
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:message select="concat('xlsx2html Warning: Formatting property could not be mapped: ', local-name())"/>
+        </xsl:otherwise>        
+      </xsl:choose>
+      <xsl:apply-templates select="node()" mode="#current"/>
+    </xsl:for-each>
+  </xsl:template>
 
 
   <!-- catch-all -->
