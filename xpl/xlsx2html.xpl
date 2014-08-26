@@ -12,9 +12,7 @@
   name="xlsx2html"
   version="1.0">
   
-  <p:input port="params" kind="parameter" primary="true">
-    <p:documentation>Arbitrary parameters that will be passed to the dynamically executed pipeline.</p:documentation>
-  </p:input>
+  <p:input port="params" kind="parameter" primary="true"/>
 
   <p:input port="stylesheet">
     <p:document href="../xsl/xlsx2html.xsl"/>
@@ -73,7 +71,7 @@
       <p:pipe port="result" step="unzip"/>
     </p:variable>
     <p:for-each>
-      <p:iteration-source select="/c:files/c:file[not(matches(@name, '\.bin$'))]"/>
+      <p:iteration-source select="/c:files/c:file[not(matches(@name, '\.(bin|jpe?g|vml)$'))]"/>
       <cx:message>
         <p:with-option name="message" select="concat('xlsx2html info: Loading file &quot;', $base-dir, /c:file/@name, '&quot;')"/>
       </cx:message>
@@ -89,6 +87,19 @@
     </p:add-attribute>
   </p:group>
 
+  <p:xslt name="add-src-paths">
+    <p:documentation>Adds src-path information to each element.</p:documentation>
+    <p:input port="source">
+      <p:pipe port="result" step="merge"/>
+    </p:input>
+    <p:input port="stylesheet">
+      <p:document href="../xsl/add-src-paths.xsl"/>
+    </p:input>
+    <p:input port="parameters">
+      <p:empty/>
+    </p:input>
+  </p:xslt>
+
   <letex:store-debug pipeline-step="01_mergedParts">
     <p:with-option name="active" select="$debug"/>
     <p:with-option name="base-uri" select="$debug-dir-uri"/>
@@ -96,9 +107,26 @@
 
   <p:sink/>
 
+  <p:filter select="//*:propmap" name="filter-propmap">
+    <p:input port="source">
+      <p:document href="../../prop-mapping/propmap.xsl"/>
+    </p:input>
+  </p:filter>
+
+  <p:string-replace match="@*[matches(., '(^|\W)w:')]" replace="replace(replace(., '(^|\W)w:', '$1'), '^rFonts$', 'rFont')" name="transform-propmap"/>
+
+  <letex:store-debug pipeline-step="propmap.modified">
+    <p:with-option name="active" select="$debug"/>
+    <p:with-option name="base-uri" select="$debug-dir-uri"/>
+    <p:with-option name="extension" select="'xsl'"/>
+  </letex:store-debug>
+
+  <p:sink/>
+
   <p:xslt template-name="main">
     <p:input port="source">
-      <p:pipe port="result" step="merge"/>
+      <p:pipe port="result" step="add-src-paths"/>
+      <p:pipe port="result" step="transform-propmap"/>
     </p:input>
     <p:input port="stylesheet">
       <p:pipe port="stylesheet" step="xlsx2html"/>
