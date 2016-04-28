@@ -14,27 +14,44 @@
   
   <p:input port="params" kind="parameter" primary="true"/>
 
-  <p:input port="stylesheet">
+  <p:input port="xlsx2html-xsl">
     <p:document href="../xsl/xlsx2html.xsl"/>
   </p:input>
+  <p:input port="html2csv-xsl">
+    <p:document href="../xsl/html2csv.xsl"/>
+  </p:input>
 
-  <p:output port="result" primary="false" sequence="true"/>
+  <p:output port="result" primary="true">
+    <p:pipe port="result" step="transform-xlsx2html"/>
+  </p:output>
+  <p:serialization port="result" omit-xml-declaration="false" method="xhtml"/>
+  
+  <p:output port="csv">
+    <p:pipe port="result" step="transform-html2csv"/>
+  </p:output>
+  <p:serialization port="csv" method="text"/>
 
   <p:option name="in-file" required="true"/>
   <p:option name="debug" select="'no'"/> 
   <p:option name="debug-dir-uri" select="'debug'"/>
   <p:option name="out-dir-uri" select="''"/>
-  
+  <p:option name="csv-separator" select="'&#x9;'"/>
+
   <p:import href="http://xmlcalabash.com/extension/steps/library-1.0.xpl" />
   <p:import href="http://transpect.io/xproc-util/store-debug/xpl/store-debug.xpl"/>
   <p:import href="http://transpect.io/calabash-extensions/transpect-lib.xpl" />
   <p:import href="http://transpect.io/xproc-util/xml-model/xpl/prepend-hub-xml-model.xpl" />
+  <p:import href="http://transpect.io/xproc-util/file-uri/xpl/file-uri.xpl" />
 
   <p:variable name="basename" select="replace($in-file, '^(.+?)([^/\\]+)\.xlsx$', '$2')"/>
 
+  <tr:file-uri name="file-uri">
+    <p:with-option name="filename" select="$in-file"/>
+  </tr:file-uri>
+
   <tr:unzip name="xlsx-unzip">
-    <p:with-option name="zip" select="$in-file" />
-    <p:with-option name="dest-dir" select="concat($in-file, '.tmp')"><p:empty/></p:with-option>
+    <p:with-option name="zip" select="/*/@os-path"/>
+    <p:with-option name="dest-dir" select="concat(/*/@os-path, '.tmp')"/>
     <p:with-option name="overwrite" select="'yes'" />
     <p:documentation>Unzips the .xlsx file.</p:documentation>
   </tr:unzip>
@@ -109,7 +126,7 @@
 
   <p:filter select="//*:propmap" name="filter-propmap">
     <p:input port="source">
-      <p:document href="../../prop-mapping/propmap.xsl"/>
+      <p:document href="http://transpect.io/docx2hub/xsl/modules/prop-mapping/propmap.xsl"/>
     </p:input>
   </p:filter>
 
@@ -123,24 +140,28 @@
 
   <p:sink/>
 
-  <p:xslt template-name="main">
+  <p:xslt template-name="main" name="transform-xlsx2html">
     <p:input port="source">
       <p:pipe port="result" step="add-src-paths"/>
       <p:pipe port="result" step="transform-propmap"/>
     </p:input>
     <p:input port="stylesheet">
-      <p:pipe port="stylesheet" step="xlsx2html"/>
+      <p:pipe port="xlsx2html-xsl" step="xlsx2html"/>
     </p:input>
     <p:input port="parameters"><p:empty/></p:input>
   </p:xslt>
 
-  <tr:store-debug pipeline-step="02_xslt">
+  <tr:store-debug pipeline-step="02_xlsx2html">
     <p:with-option name="active" select="$debug"/>
     <p:with-option name="base-uri" select="$debug-dir-uri"/>
   </tr:store-debug>
 
-  <p:store>
-    <p:with-option name="href" select="concat($out-dir-uri, $basename, '.html')"/>
-  </p:store>
+  <p:xslt name="transform-html2csv">
+    <p:input port="stylesheet">
+      <p:pipe port="html2csv-xsl" step="xlsx2html"/>
+    </p:input>
+    <p:input port="parameters"><p:empty/></p:input>
+    <p:with-param name="csv-separator" select="$csv-separator"/>
+  </p:xslt>
 
 </p:declare-step>

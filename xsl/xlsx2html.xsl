@@ -6,6 +6,7 @@
                 xmlns:tr	= "http://transpect.io"
                 xmlns:xlsx2html = "http://transpect.io/xlsx2html"
                 xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+                xmlns:xls="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
                 xmlns="http://www.w3.org/1999/xhtml"
                 exclude-result-prefixes = "xs tr xlsx2html"
                 >
@@ -185,14 +186,124 @@
         <xsl:element name="span">
           <xsl:apply-templates select="@srcpath" mode="#current"/>
           <xsl:attribute name="class" select="'result'"/>
-          <xsl:apply-templates select="node()" mode="#current"/>
+          <xsl:value-of select="xlsx2html:apply-format(., ../@s)"/>
         </xsl:element>
       </xsl:when>
       <xsl:otherwise>
-        <xsl:apply-templates select="node()" mode="#current"/>
+        <xsl:value-of select="xlsx2html:apply-format(., ../@s)"/>
       </xsl:otherwise>
     </xsl:choose>
   </xsl:template>
+
+  <!-- Predefined number formats 
+ https://social.msdn.microsoft.com/Forums/office/en-US/e27aaf16-b900-4654-8210-83c5774a179c/xlsx-numfmtid-predefined-id-14-doesnt-match?forum=oxmlsdk#4382183b-59a4-4863-9ad6-01470e9afcd9
+ 0 General
+ 1 0
+ 2 0.00
+ 3 #,##0
+ 4 #,##0.00
+ 5 $#,##0_);($#,##0)
+ 6 $#,##0_);[Red]($#,##0)
+ 7 $#,##0.00_);($#,##0.00)
+ 8 $#,##0.00_);[Red]($#,##0.00)
+ 9 0%
+10 0.00%
+11 0.00E+00
+12 # ?/?
+13 # ??/??
+14 mm-dd-yy
+15 d-mmm-yy
+16 d-mmm
+17 mmm-yy
+18 h:mm AM/PM
+19 h:mm:ss AM/PM
+20 h:mm
+21 h:mm:ss
+22 m/d/yy h:mm
+37 #,##0 ;(#,##0)
+38 #,##0 ;[Red](#,##0)
+39 #,##0.00;(#,##0.00)
+40 #,##0.00;[Red](#,##0.00)
+45 mm:ss
+46 [h]:mm:ss
+47 mmss.0
+48 ##0.0E+0
+49 @
+-->
+
+  <xsl:function name="xlsx2html:apply-format" as="xs:string">
+    <xsl:param name="value" as="element(xls:v)"/>
+    <xsl:param name="styleno" as="attribute(s)?"/>
+    <xsl:variable name="numFmtId" as="xs:integer?" 
+      select="root($value)//xls:cellXfs/xls:xf[xlsx2html:index-of(../*, .) = $styleno + 1]/@numFmtId"/>
+    <xsl:variable name="formatCode" as="xs:string?" 
+      select="root($value)//xls:numFmts/xls:numFmt[@numFmtId = $numFmtId]/@formatCode"/>
+    <xsl:variable name="picture-string" as="xs:string?">
+      <xsl:choose>
+        <xsl:when test="$numFmtId = 14">
+          <xsl:sequence select="'[Y]-[M,2]-[D,2]'"/>
+        </xsl:when>
+        <xsl:when test="matches(replace($formatCode, '\P{L}', ''), '^[ymd]+$')">
+          <xsl:sequence select="
+                                            replace(
+                                              replace(
+                                                replace(
+                                                  replace(
+                                                    replace(
+                                                      replace(
+                                                        replace(
+                                                          replace(
+                                                            replace(
+                                                              $formatCode,
+                                                              '(^\[\$-\d{3}\]|;@$)',
+                                                              ''
+                                                            ),
+                                                            '\\(-)',
+                                                            '$1'
+                                                          ),
+                                                          'mmmmm',
+                                                          '[Mn,1-1]'
+                                                        ),
+                                                        'mmmm',
+                                                        '[Mn]'
+                                                      ),
+                                                      'mmm',
+                                                      '[Mn,3-3]'
+                                                    ),
+                                                    'mm',
+                                                    '[M,2]'
+                                                  ),
+                                                  'm',
+                                                  '[M]'
+                                                ),
+                                                'yyyy',
+                                                '[Y]'
+                                              ),
+                                              'yy',
+                                              '[Y,2]'
+                                            )"/>
+        </xsl:when>
+      </xsl:choose>
+    </xsl:variable> 
+    <xsl:choose>
+      <xsl:when test="$picture-string and normalize-space($value)">
+        <xsl:variable name="day-string" select="concat('P', $value, 'D')" as="xs:string"/>
+        <xsl:variable name="date" select="xs:date('1899-12-30') + xs:dayTimeDuration($day-string)" as="xs:date"/>
+        <xsl:sequence select="format-date($date, $picture-string)"/>
+      </xsl:when>
+      <xsl:otherwise>
+        <xsl:sequence select="$value"/>
+      </xsl:otherwise>
+    </xsl:choose>
+  </xsl:function>
+
+  
+  
+  <xsl:function name="xlsx2html:index-of" as="xs:integer*">
+    <xsl:param name="nodes" as="node()*"/>
+    <xsl:param name="node" as="node()*"/>
+    <xsl:sequence select="index-of($nodes/generate-id(), $node/generate-id())"/>
+  </xsl:function>
 
   <xsl:function name="xlsx2html:get-string-from-sst" as="node()*">
     <xsl:param name="index" as="xs:integer"/>
