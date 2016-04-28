@@ -3,12 +3,11 @@
                 xmlns:css = "http://www.w3.org/1996/css"
                 xmlns:xsl	= "http://www.w3.org/1999/XSL/Transform"
                 xmlns:xs = "http://www.w3.org/2001/XMLSchema"
-                xmlns:saxon	= "http://saxon.sf.net/"
-                xmlns:letex	= "http://www.le-tex.de/namespace"
-                xmlns:xlsx2html = "http://www.le-tex.de/namespace/xlsx2html"
+                xmlns:tr	= "http://transpect.io"
+                xmlns:xlsx2html = "http://transpect.io/xlsx2html"
                 xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
                 xmlns="http://www.w3.org/1999/xhtml"
-                exclude-result-prefixes = "xs saxon letex"
+                exclude-result-prefixes = "xs tr xlsx2html"
                 >
 
   <xsl:output
