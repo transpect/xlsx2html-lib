@@ -22,9 +22,9 @@
   </p:input>
 
   <p:output port="result" primary="true">
-    <p:pipe port="result" step="transform-xlsx2html"/>
+    <p:pipe port="result" step="strip-srcpaths"/>
   </p:output>
-  <p:serialization port="result" omit-xml-declaration="false" method="xhtml"/>
+  <p:serialization port="result" omit-xml-declaration="false" method="xhtml" indent="true"/>
   
   <p:output port="csv">
     <p:pipe port="result" step="transform-html2csv"/>
@@ -48,6 +48,11 @@
   <tr:file-uri name="file-uri">
     <p:with-option name="filename" select="$in-file"/>
   </tr:file-uri>
+
+  <tr:store-debug pipeline-step="00_file-uri">
+    <p:with-option name="active" select="$debug"/>
+    <p:with-option name="base-uri" select="$debug-dir-uri"/>
+  </tr:store-debug>
 
   <tr:unzip name="xlsx-unzip">
     <p:with-option name="zip" select="/*/@os-path"/>
@@ -155,6 +160,8 @@
     <p:with-option name="active" select="$debug"/>
     <p:with-option name="base-uri" select="$debug-dir-uri"/>
   </tr:store-debug>
+
+  <p:delete match="@srcpath" name="strip-srcpaths"/>
 
   <p:xslt name="transform-html2csv">
     <p:input port="stylesheet">

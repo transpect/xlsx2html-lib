@@ -11,7 +11,8 @@
                 >
 
   <xsl:param name="csv-separator" select="'&#x9;'" as="xs:string"/>
-  <xsl:param name="line-separator" select="'&#xa;'" as="xs:string"/>
+  <xsl:param name="line-separator" select="'&#xd;&#xa;'" as="xs:string"/>
+  <xsl:param name="sheet-separator" select="'--------'" as="xs:string"/>
 
   <xsl:template match="text()" mode="#default"/>
   
@@ -28,9 +29,15 @@
   
   <xsl:template match="span[@class = 'formula']" mode="csv"/>
   
+  <xsl:template match="div[@class = 'worksheet'][preceding-sibling::div[@class = 'worksheet']]" mode="csv">
+    <xsl:value-of select="$sheet-separator"/>
+    <xsl:value-of select="$line-separator"/>
+    <xsl:apply-templates mode="#current"/>
+  </xsl:template>
+  
   <xsl:template match="tr" mode="csv">
     <xsl:variable name="cells" as="xs:string*">
-      <xsl:apply-templates select="*" mode="#current"/>
+      <xsl:apply-templates select="* | processing-instruction(merged)" mode="#current"/>
     </xsl:variable>
     <xsl:value-of select="string-join($cells, $csv-separator)"/>
     <xsl:value-of select="$line-separator"/>
@@ -40,9 +47,9 @@
     <xsl:apply-templates mode="#current"/>
   </xsl:template>
   
-  <xsl:template match="td[not(normalize-space())] | th[not(normalize-space())]" mode="csv" as="text()*">
+  <xsl:template match="td[not(normalize-space())] | th[not(normalize-space())] | processing-instruction(merged)" 
+    mode="csv" as="text()*">
     <xsl:text/>
   </xsl:template>
   
-
 </xsl:stylesheet>
