@@ -6,10 +6,11 @@
                 xmlns:tr	= "http://transpect.io"
                 xmlns:xlsx2html = "http://transpect.io/xlsx2html"
                 xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+                xmlns:rels="http://schemas.openxmlformats.org/package/2006/relationships"
                 xmlns:xls="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
                 xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac"
                 xmlns="http://www.w3.org/1999/xhtml"
-                exclude-result-prefixes = "xs tr xlsx2html x14ac xls css r"
+                exclude-result-prefixes = "xs tr xlsx2html x14ac xls css r rels"
                 >
 
   <xsl:output
@@ -25,7 +26,9 @@
 
   <xsl:variable name="base-dir" select="/*:xlsx-parts/@xml:base" as="xs:string"/>
   <xsl:variable name="main-rels-part" select="concat($base-dir, '_rels/.rels')" as="xs:string"/>
-  <xsl:variable name="main-part" select="//*:part[@xml:base eq concat($base-dir, //*:part[@xml:base eq $main-rels-part]//*:Relationship[@Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument']/@Target)]" as="node()"/>
+  <xsl:variable name="main-part" as="element(part)?" 
+    select="//part[@xml:base eq concat($base-dir, //part[@xml:base eq $main-rels-part]
+              //rels:Relationship[@Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument']/@Target)]"/>
   <xsl:variable name="main-part-dir" select="replace($main-part/@xml:base, '^(.+/)[^/]+$', '$1')" as="xs:string"/>
   <xsl:variable name="main-part-name" select="replace($main-part/@xml:base, '^(.+/)([^/]+)$', '$2')" as="xs:string"/>
 
@@ -36,17 +39,20 @@
 
   <xsl:template match="*:part" mode="html">
     <xsl:for-each select="xls:workbook">
-      <xsl:element name="html">
+      <html>
         <xsl:apply-templates select="@srcpath" mode="#current"/>
-        <xsl:element name="head">
-          <xsl:element name="title">
+        <head>
+          <title>
             <xsl:value-of select="$base-dir"/>
-          </xsl:element>
-        </xsl:element>
-        <xsl:element name="body">
+          </title>
+          <style type="text/css">
+            span.formula { display: none }
+          </style>
+        </head>
+        <body>
           <xsl:apply-templates select="xls:sheets" mode="#current"/>
-        </xsl:element>
-      </xsl:element>
+        </body>
+      </html>
     </xsl:for-each>
   </xsl:template>
 
