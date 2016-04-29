@@ -35,7 +35,9 @@
   <p:option name="debug" select="'no'"/> 
   <p:option name="debug-dir-uri" select="'debug'"/>
   <p:option name="out-dir-uri" select="''"/>
-  <p:option name="csv-separator" select="'&#x9;'"/>
+  <p:option name="cell-separator" select="'tab'"/>
+  <p:option name="line-separator" select="'CRLF'"/>
+  <p:option name="sheet-separator" select="'hyphens'"/>
 
   <p:import href="http://xmlcalabash.com/extension/steps/library-1.0.xpl" />
   <p:import href="http://transpect.io/xproc-util/store-debug/xpl/store-debug.xpl"/>
@@ -94,9 +96,16 @@
     </p:variable>
     <p:for-each>
       <p:iteration-source select="/c:files/c:file[not(matches(@name, '\.(bin|jpe?g|vml)$'))]"/>
-      <cx:message>
-        <p:with-option name="message" select="concat('xlsx2html info: Loading file &quot;', $base-dir, /c:file/@name, '&quot;')"/>
-      </cx:message>
+      <p:choose>
+        <p:when test="$debug = 'yes'">
+          <cx:message>
+            <p:with-option name="message" select="concat('xlsx2html info: Loading file &quot;', $base-dir, /c:file/@name, '&quot;')"/>
+          </cx:message>    
+        </p:when>
+        <p:otherwise>
+          <p:identity/>
+        </p:otherwise>
+      </p:choose>
       <p:load>
         <p:with-option name="href" select="concat($base-dir, /c:file/@name)"/>
       </p:load>
@@ -168,7 +177,9 @@
       <p:pipe port="html2csv-xsl" step="xlsx2html"/>
     </p:input>
     <p:input port="parameters"><p:empty/></p:input>
-    <p:with-param name="csv-separator" select="$csv-separator"/>
+    <p:with-param name="cell-separator" select="$cell-separator"/>
+    <p:with-param name="line-separator" select="$line-separator"/>
+    <p:with-param name="sheet-separator" select="$sheet-separator"/>
   </p:xslt>
 
 </p:declare-step>
