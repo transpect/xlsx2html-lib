@@ -51,7 +51,9 @@
     <p:with-option name="filename" select="$in-file"/>
   </tr:file-uri>
 
-  <tr:store-debug pipeline-step="00_file-uri">
+  <tr:store-debug>
+    <p:with-option name="pipeline-step" select="concat(replace($in-file, '^.+/(.+)\.xlsx$', '$1.debug', 'i'), 
+                                                       '/xlsx2html/00_file-uri')"/>
     <p:with-option name="active" select="$debug"/>
     <p:with-option name="base-uri" select="$debug-dir-uri"/>
   </tr:store-debug>
@@ -84,7 +86,9 @@
     <p:input port="parameters"><p:empty/></p:input>
   </p:xslt>
 
-  <tr:store-debug pipeline-step="00_unzip-filelist">
+  <tr:store-debug>
+    <p:with-option name="pipeline-step" select="concat(replace($in-file, '^.+/(.+)\.xlsx$', '$1.debug', 'i'), 
+                                                       '/xlsx2html/00_unzip-filelist')"/>
     <p:with-option name="active" select="$debug"/>
     <p:with-option name="base-uri" select="$debug-dir-uri"/>
   </tr:store-debug>
@@ -131,7 +135,9 @@
     </p:input>
   </p:xslt>
 
-  <tr:store-debug pipeline-step="01_mergedParts">
+  <tr:store-debug>
+    <p:with-option name="pipeline-step" select="concat(replace($in-file, '^.+/(.+)\.xlsx$', '$1.debug', 'i'), 
+                                                       '/xlsx2html/01_mergedParts')"/>
     <p:with-option name="active" select="$debug"/>
     <p:with-option name="base-uri" select="$debug-dir-uri"/>
   </tr:store-debug>
@@ -146,7 +152,9 @@
 
   <p:string-replace match="@*[matches(., '(^|\W)w:')]" replace="replace(replace(., '(^|\W)w:', '$1'), '^rFonts$', 'rFont')" name="transform-propmap"/>
 
-  <tr:store-debug pipeline-step="propmap.modified">
+  <tr:store-debug>
+    <p:with-option name="pipeline-step" select="concat(replace($in-file, '^.+/(.+)\.xlsx$', '$1.debug', 'i'), 
+                                                               '/xlsx2html/propmap.modified')"/>
     <p:with-option name="active" select="$debug"/>
     <p:with-option name="base-uri" select="$debug-dir-uri"/>
     <p:with-option name="extension" select="'xsl'"/>
@@ -165,7 +173,9 @@
     <p:input port="parameters"><p:empty/></p:input>
   </p:xslt>
 
-  <tr:store-debug pipeline-step="02_xlsx2html">
+  <tr:store-debug>
+    <p:with-option name="pipeline-step" select="concat(replace($in-file, '^.+/(.+)\.xlsx$', '$1.debug', 'i'), 
+                                                       '/xlsx2html/02_xlsx2html')"/>
     <p:with-option name="active" select="$debug"/>
     <p:with-option name="base-uri" select="$debug-dir-uri"/>
   </tr:store-debug>
