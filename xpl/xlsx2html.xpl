@@ -162,7 +162,7 @@
 
   <p:sink/>
 
-  <p:xslt template-name="main" name="transform-xlsx2html">
+  <p:xslt template-name="main" name="transform-xlsx2html-main">
     <p:input port="source">
       <p:pipe port="result" step="add-src-paths"/>
       <p:pipe port="result" step="transform-propmap"/>
