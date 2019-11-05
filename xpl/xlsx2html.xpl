@@ -99,7 +99,7 @@
       <p:pipe port="result" step="unzip"/>
     </p:variable>
     <p:for-each>
-      <p:iteration-source select="/c:files/c:file[not(matches(@name, '\.(bin|jpe?g|vml|png)$'))]"/>
+      <p:iteration-source select="/c:files/c:file[not(matches(@name, '\.(bin|jpe?g|vml|png|emf)$'))]"/>
       <p:choose>
         <p:when test="$debug = 'yes'">
           <cx:message>
